@@ -16,7 +16,6 @@ from sarvamai import SarvamAI
 load_dotenv()
 
 SARVAM_API_KEY = os.getenv("SARVAM_API_KEY")
-
 if not SARVAM_API_KEY:
     raise RuntimeError("Missing SARVAM_API_KEY")
 
@@ -50,16 +49,42 @@ sarvam_client = SarvamAI(
 )
 
 # -------------------------------------------------
+# Helpers
+# -------------------------------------------------
+def image_to_video(image_path, output_video_path, duration=5):
+    subprocess.run([
+        "ffmpeg", "-y",
+        "-loop", "1",
+        "-i", image_path,
+        "-t", str(duration),
+        "-vf",
+        "scale=1280:720:force_original_aspect_ratio=decrease,"
+        "pad=1280:720:(ow-iw)/2:(oh-ih)/2,"
+        "scale=trunc(iw/2)*2:trunc(ih/2)*2",
+        "-pix_fmt", "yuv420p",
+        "-r", "25",
+        output_video_path
+    ], check=True)
+
+
+# -------------------------------------------------
 # UI
 # -------------------------------------------------
-
-from fastapi.responses import HTMLResponse
-
 @app.get("/", response_class=HTMLResponse)
 def index():
     with open(os.path.join(BASE_DIR, "invitation_index.html"), "r", encoding="utf-8") as f:
         return f.read()
-        
+
+# -------------------------------------------------
+# Video endpoints
+# -------------------------------------------------
+@app.get("/video")
+def get_video():
+    return FileResponse(
+        FINAL_VIDEO_OUTPUT,
+        media_type="video/mp4",
+        headers={"Cache-Control": "no-store"}
+    )
 
 @app.get("/download")
 def download_video():
@@ -73,18 +98,6 @@ def download_video():
         }
     )
 
-
-# -------------------------------------------------
-# Video endpoint
-# -------------------------------------------------
-@app.get("/video")
-def get_video():
-    return FileResponse(
-        FINAL_VIDEO_OUTPUT,
-        media_type="video/mp4",
-        headers={"Cache-Control": "no-store"}
-    )
-
 # -------------------------------------------------
 # Generation endpoint
 # -------------------------------------------------
@@ -93,13 +106,24 @@ def generate(
     video: UploadFile = File(...),
     text: str = Form(...)
 ):
-    # Save uploaded video
-    input_video_path = os.path.join(UPLOAD_DIR, f"{uuid.uuid4()}.mp4")
-    with open(input_video_path, "wb") as f:
+    upload_id = str(uuid.uuid4())
+    ext = os.path.splitext(video.filename)[1].lower()
+
+    input_path = os.path.join(UPLOAD_DIR, upload_id + ext)
+    with open(input_path, "wb") as f:
         shutil.copyfileobj(video.file, f)
 
     # -------------------------------------------------
-    # EXACT text → Sarvam TTS (no modification)
+    # Image → Video if required
+    # -------------------------------------------------
+    if ext in [".jpg", ".jpeg", ".png"]:
+        input_video_path = os.path.join(UPLOAD_DIR, upload_id + "_img.mp4")
+        image_to_video(input_path, input_video_path)
+    else:
+        input_video_path = input_path
+
+    # -------------------------------------------------
+    # EXACT text → Sarvam TTS
     # -------------------------------------------------
     tts = sarvam_client.text_to_speech.convert(
         text=text,

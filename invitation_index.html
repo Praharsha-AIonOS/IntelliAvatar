@@ -34,7 +34,6 @@ body {
     font-size: 28px;
     font-weight: 600;
     margin-bottom: 24px;
-    letter-spacing: 1px;
 }
 
 .main {
@@ -44,7 +43,7 @@ body {
     gap: 28px;
 }
 
-/* LEFT PANEL */
+/* LEFT */
 .left {
     background: var(--panel);
     border-radius: 20px;
@@ -57,18 +56,13 @@ body {
 .upload-box {
     border: 2px dashed #2a2f45;
     border-radius: 16px;
-    padding: 30px;
+    padding: 28px;
     text-align: center;
     cursor: pointer;
-    transition: border-color 0.2s;
 }
 
 .upload-box.uploaded {
     border-color: var(--success);
-}
-
-.upload-box:hover {
-    border-color: var(--accent);
 }
 
 .upload-box input {
@@ -77,7 +71,6 @@ body {
 
 .upload-text {
     color: var(--muted);
-    font-size: 15px;
 }
 
 .upload-text.success {
@@ -86,7 +79,6 @@ body {
 }
 
 .file-name {
-    margin-top: 6px;
     font-size: 13px;
     color: var(--success);
     display: none;
@@ -117,7 +109,7 @@ body {
     display: none;
 }
 
-/* RIGHT PANEL */
+/* RIGHT */
 .right {
     background: black;
     border-radius: 24px;
@@ -128,7 +120,7 @@ body {
     justify-content: center;
 }
 
-video {
+video, img {
     width: 100%;
     height: 100%;
     object-fit: contain;
@@ -147,12 +139,6 @@ video {
     border-top: 6px solid var(--accent);
     border-radius: 50%;
     animation: spin 1s linear infinite;
-    margin: auto;
-}
-
-.loader p {
-    margin-top: 16px;
-    color: var(--muted);
 }
 
 @keyframes spin {
@@ -181,57 +167,51 @@ video {
 
 <div class="page">
 
-    <div class="header">ATONOS</div>
+<div class="header">ATONOS</div>
 
-    <div class="main">
+<div class="main">
 
-        <!-- LEFT -->
-        <form class="left" id="inviteForm">
+<form class="left" id="inviteForm">
 
-            <label class="upload-box" id="uploadBox">
-                <input type="file" id="videoInput" name="video" accept="video/mp4" required />
-                <div class="upload-text" id="uploadText">⬆ Upload Reference Video</div>
-                <div class="file-name" id="fileName"></div>
-            </label>
+<label class="upload-box" id="uploadBox">
+    <input type="file" id="videoInput" name="video"
+           accept="video/mp4,image/png,image/jpeg" required />
+    <div class="upload-text" id="uploadText">⬆ Upload Video or Image</div>
+    <div class="file-name" id="fileName"></div>
+</label>
 
-            <div class="text-input">
-                <input
-                    type="text"
-                    id="textInput"
-                    name="text"
-                    placeholder="Enter text to be spoken…"
-                    required
-                />
-            </div>
+<div class="text-input">
+    <input type="text" name="text" placeholder="Enter text to be spoken…" required />
+</div>
 
-            <button class="generate-btn" type="submit">Generate</button>
+<button class="generate-btn" type="submit">Generate</button>
 
-            <div class="status" id="statusText">Generating avatar…</div>
+<div class="status" id="statusText">Generating avatar…</div>
 
-        </form>
+</form>
 
-        <!-- RIGHT -->
-        <div class="right">
+<div class="right">
 
-            <video id="resultVideo" controls playsinline></video>
+<img id="imagePreview" />
+<video id="resultVideo" controls playsinline></video>
 
-            <div class="loader" id="loader">
-                <div class="spinner"></div>
-                <p>Generating video…</p>
-            </div>
+<div class="loader" id="loader">
+    <div class="spinner"></div>
+    <p>Generating video…</p>
+</div>
 
-            <div class="download" id="downloadBox">
-                <a href="/download">⬇ Download</a>
-            </div>
+<div class="download" id="downloadBox">
+    <a href="/download">⬇ Download</a>
+</div>
 
-        </div>
-
-    </div>
+</div>
+</div>
 </div>
 
 <script>
 const form = document.getElementById("inviteForm");
 const video = document.getElementById("resultVideo");
+const img = document.getElementById("imagePreview");
 const loader = document.getElementById("loader");
 const statusText = document.getElementById("statusText");
 const downloadBox = document.getElementById("downloadBox");
@@ -241,16 +221,25 @@ const uploadBox = document.getElementById("uploadBox");
 const uploadText = document.getElementById("uploadText");
 const fileName = document.getElementById("fileName");
 
-/* Show upload success */
 videoInput.onchange = () => {
-    if (videoInput.files.length > 0) {
-        uploadBox.classList.add("uploaded");
-        uploadText.classList.add("success");
-        uploadText.textContent = "✔ Video uploaded";
-        fileName.style.display = "block";
-        fileName.textContent = videoInput.files[0].name;
+    const file = videoInput.files[0];
+    if (!file) return;
+
+    uploadBox.classList.add("uploaded");
+    uploadText.classList.add("success");
+    uploadText.textContent = "✔ Uploaded";
+    fileName.style.display = "block";
+    fileName.textContent = file.name;
+
+    if (file.type.startsWith("image/")) {
+        img.src = URL.createObjectURL(file);
+        img.style.display = "block";
+        video.style.display = "none";
+    } else {
+        img.style.display = "none";
     }
 };
+
 
 form.onsubmit = async (e) => {
     e.preventDefault();
@@ -260,6 +249,7 @@ form.onsubmit = async (e) => {
     statusText.style.display = "block";
     loader.style.display = "block";
     video.style.display = "none";
+    img.style.display = "none";
     downloadBox.style.display = "none";
 
     await fetch("/generate", {
