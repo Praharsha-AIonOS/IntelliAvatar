@@ -1,8 +1,10 @@
-opencv-python==4.8.0.76
-numpy
 tqdm
 librosa
 numba
 imutils
 insightface==0.7.3
-onnxruntime==1.14.1
+fastapi==0.115.5
+uvicorn==0.30.6
+onnxruntime==1.20.1
+numpy==1.26.4
+opencv-python==4.10.0.84
