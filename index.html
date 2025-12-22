@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Swatara Avatar</title>
+
+<style>
+body {
+    margin: 0;
+    background: #0f1115;
+    font-family: Arial, sans-serif;
+    color: white;
+}
+.page {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 24px;
+}
+.video-wrapper {
+    width: 100%;
+    max-width: 1400px;
+    aspect-ratio: 16 / 9;
+    background: black;
+    border-radius: 20px;
+    overflow: hidden;
+    box-shadow: 0 25px 60px rgba(0,0,0,0.7);
+    margin-bottom: 24px;
+}
+video {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+}
+.input-area {
+    width: 100%;
+    display: flex;
+    justify-content: center;
+}
+
+.input-row {
+    width: 100%;
+    max-width: 1100px;
+    display: flex;
+    align-items: center;
+    gap: 18px;
+    padding: 14px 18px;
+    background: rgba(255, 255, 255, 0.04);
+    border-radius: 22px;
+    backdrop-filter: blur(10px);
+}
+
+.input-row input {
+    flex: 1;
+    height: 68px;
+    padding: 0 22px;
+    font-size: 18px;
+    border-radius: 18px;
+    border: none;
+    outline: none;
+    background: #ffffff;
+    color: #000;
+}
+
+.input-row input::placeholder {
+    color: #888;
+}
+
+.input-row button {
+    height: 68px;
+    padding: 0 34px;
+    font-size: 18px;
+    font-weight: 600;
+    border-radius: 18px;
+    border: none;
+    background: linear-gradient(135deg, #4f7cff, #6b8cff);
+    color: white;
+    cursor: pointer;
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.input-row button:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 8px 20px rgba(79,124,255,0.4);
+}
+
+textarea {
+    width: 100%;
+    min-height: 90px;
+    padding: 16px;
+    border-radius: 14px;
+    border: none;
+    font-size: 16px;
+}
+button {
+    margin-top: 12px;
+    padding: 14px 28px;
+    border-radius: 12px;
+    border: none;
+    font-size: 16px;
+    background: #4f7cff;
+    color: white;
+    cursor: pointer;
+}
+</style>
+</head>
+
+<body>
+<div class="page">
+
+<div class="video-wrapper">
+    <video id="avatarVideo" autoplay playsinline></video>
+</div>
+
+<div class="input-area">
+    <form id="queryForm" class="input-row">
+        <input
+            type="text"
+            name="query"
+            placeholder="Type your message..."
+            required
+        />
+        <button type="submit">Send</button>
+    </form>
+</div>
+
+</div>
+
+<script>
+const video = document.getElementById("avatarVideo");
+
+const WELCOME = "/video/welcome";
+const IDLE = "/video/idle";
+const GENERATED = "/video/generated";
+
+let audioUnlocked = false;
+
+// Initial state (must be muted)
+video.src = WELCOME;
+video.muted = true;
+video.loop = false;
+video.play();
+
+// Overlay to unlock audio
+const overlay = document.createElement("div");
+overlay.style.position = "fixed";
+overlay.style.inset = "0";
+overlay.style.background = "rgba(0,0,0,0.6)";
+overlay.style.display = "flex";
+overlay.style.alignItems = "center";
+overlay.style.justifyContent = "center";
+overlay.style.zIndex = "9999";
+overlay.style.cursor = "pointer";
+overlay.innerHTML = `
+  <div style="text-align:center">
+    <h2>Click to start</h2>
+    <p>Enable sound and begin</p>
+  </div>
+`;
+document.body.appendChild(overlay);
+
+// Unlock audio on first click
+overlay.onclick = () => {
+    audioUnlocked = true;
+    video.muted = false;
+    video.currentTime = 0;
+    video.play();
+    overlay.remove();
+};
+
+video.onended = () => {
+    if (!audioUnlocked) return;
+    video.src = IDLE;
+    video.muted = true;
+    video.loop = true;
+    video.play();
+};
+
+document.getElementById("queryForm").onsubmit = async (e) => {
+    e.preventDefault();
+
+    if (!audioUnlocked) return;
+
+    const formData = new FormData(e.target);
+
+    video.src = IDLE;
+    video.muted = true;
+    video.loop = true;
+    video.play();
+
+    await fetch("/generate", {
+        method: "POST",
+        body: formData
+    });
+
+    video.loop = false;
+    video.muted = false;
+    video.src = GENERATED + "?t=" + Date.now();
+    video.play();
+
+    video.onended = () => {
+        video.src = IDLE;
+        video.muted = true;
+        video.loop = true;
+        video.play();
+    };
+
+    e.target.reset();
+};
+</script>
+
+</body>
+</html>

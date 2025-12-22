@@ -1,0 +1,21 @@
+# Virtual env
+venv/
+
+# Models
+*.onnx
+*.pt
+*.pth
+*.ckpt
+
+# Media
+outputs/
+*.mp4
+*.wav
+*.avi
+
+# Temp
+temp/
+tmp/
+
+.env
+.env.*
