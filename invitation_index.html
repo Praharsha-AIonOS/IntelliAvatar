@@ -74,6 +74,13 @@ video { width:100%; height:100%; display:none; }
   padding:12px 20px; background:var(--success);
   color:black; border-radius:12px; text-decoration:none;
 }
+.avatar small {
+  display:block;
+  text-align:center;
+  font-size:12px;
+  color:#9aa0b4;
+  margin-top:4px;
+}
 </style>
 </head>
 
@@ -89,9 +96,37 @@ video { width:100%; height:100%; display:none; }
 </label>
 
 <div class="avatars">
-  <div class="avatar" data-avatar="bw1.png"><img src="/inputs/bw1.png"></div>
-  <div class="avatar" data-avatar="rajasthani.png"><img src="/inputs/rajasthani.png"></div>
-  <div class="avatar" data-avatar="bengal.png"><img src="/inputs/bengal.png"></div>
+  <!-- Female avatars -->
+  <div class="avatar" data-avatar="bengal.png">
+    <img src="/inputs/bengal.png">
+    <!-- <small>Female</small> -->
+  </div>
+
+  <div class="avatar" data-avatar="bw1.png">
+    <img src="/inputs/bw1.png">
+    <!-- <small>Female</small> -->
+  </div>
+
+  <div class="avatar" data-avatar="rajasthani.png">
+    <img src="/inputs/rajasthani.png">
+    <!-- <small>Female</small> -->
+  </div>
+
+  <!-- Male avatars -->
+  <div class="avatar" data-avatar="punjabi.png">
+    <img src="/inputs/punjabi.png">
+    <!-- <small>Male</small> -->
+  </div>
+
+  <div class="avatar" data-avatar="bm1.png">
+    <img src="/inputs/bm1.png">
+    <!-- <small>Male</small> -->
+  </div>
+
+  <div class="avatar" data-avatar="bm2.png">
+    <img src="/inputs/bm2.png">
+    <!-- <small>Male</small> -->
+  </div>
 </div>
 
 <input type="hidden" name="avatar" id="avatarField">

@@ -39,6 +39,14 @@ WAV2LIP_MODEL = os.path.join(BASE_DIR, "checkpoints", "wav2lip_gan.onnx")
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 os.makedirs(TEMP_DIR, exist_ok=True)
 os.makedirs(OUTPUT_DIR, exist_ok=True)
+AVATAR_GENDER_MAP = {
+    "bengal.png": "manisha",
+    "bw1.png": "vidya",
+    "rajasthani.png": "vidya",
+    "punjabi.png": "hitesh",
+    "bm1.png": "varun",
+    "bm2.png": "anirudh"
+}
 
 # -------------------------------------------------
 # App
@@ -137,6 +145,7 @@ def generate(
     # ----------------------------------------
     tts = sarvam_client.text_to_speech.convert(
         text=text,
+        speaker=AVATAR_GENDER_MAP[avatar],
         target_language_code="en-IN"
     )
 
