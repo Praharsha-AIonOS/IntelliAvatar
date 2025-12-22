@@ -38,6 +38,10 @@ body { margin:0; background:var(--bg); color:var(--text); font-family:Arial; }
   width:100%; padding:16px; border-radius:14px; border:none;
 }
 
+select {
+  width:100%; padding:14px; border-radius:14px; border:none;
+}
+
 .generate-btn {
   height:54px; border-radius:16px; border:none;
   background:linear-gradient(135deg,#4f7cff,#6b8cff);
@@ -50,10 +54,7 @@ body { margin:0; background:var(--bg); color:var(--text); font-family:Arial; }
   position:relative;
 }
 
-.placeholder {
-  color:var(--muted); font-size:18px;
-}
-
+.placeholder { color:var(--muted); font-size:18px; }
 video { width:100%; height:100%; display:none; }
 
 .loader { display:none; text-align:center; }
@@ -74,13 +75,6 @@ video { width:100%; height:100%; display:none; }
   padding:12px 20px; background:var(--success);
   color:black; border-radius:12px; text-decoration:none;
 }
-.avatar small {
-  display:block;
-  text-align:center;
-  font-size:12px;
-  color:#9aa0b4;
-  margin-top:4px;
-}
 </style>
 </head>
 
@@ -95,44 +89,38 @@ video { width:100%; height:100%; display:none; }
   <input type="file" name="video" id="videoInput" accept="video/mp4">
 </label>
 
+<!-- Gender -->
+<select name="gender" id="gender" required>
+  <option value="">Select Gender</option>
+  <option value="male">Male</option>
+  <option value="female">Female</option>
+</select>
+
 <div class="avatars">
-  <!-- Female avatars -->
-  <div class="avatar" data-avatar="bengal.png">
+  <div class="avatar" data-avatar="bengal.png" data-gender="female">
     <img src="/inputs/bengal.png">
-    <!-- <small>Female</small> -->
   </div>
-
-  <div class="avatar" data-avatar="bw1.png">
+  <div class="avatar" data-avatar="bw1.png" data-gender="female">
     <img src="/inputs/bw1.png">
-    <!-- <small>Female</small> -->
   </div>
-
-  <div class="avatar" data-avatar="rajasthani.png">
+  <div class="avatar" data-avatar="rajasthani.png" data-gender="female">
     <img src="/inputs/rajasthani.png">
-    <!-- <small>Female</small> -->
   </div>
-
-  <!-- Male avatars -->
-  <div class="avatar" data-avatar="punjabi.png">
+  <div class="avatar" data-avatar="punjabi.png" data-gender="male">
     <img src="/inputs/punjabi.png">
-    <!-- <small>Male</small> -->
   </div>
-
-  <div class="avatar" data-avatar="bm1.png">
+  <div class="avatar" data-avatar="bm1.png" data-gender="male">
     <img src="/inputs/bm1.png">
-    <!-- <small>Male</small> -->
   </div>
-
-  <div class="avatar" data-avatar="bm2.png">
+  <div class="avatar" data-avatar="bm2.png" data-gender="male">
     <img src="/inputs/bm2.png">
-    <!-- <small>Male</small> -->
   </div>
 </div>
 
 <input type="hidden" name="avatar" id="avatarField">
 
 <div class="text-input">
-  <input type="text" name="text" placeholder="Enter text to be spoken…" required>
+  <input type="text" name="text" placeholder="Enter text…" required>
 </div>
 
 <button class="generate-btn">Generate</button>
@@ -140,15 +128,12 @@ video { width:100%; height:100%; display:none; }
 </form>
 
 <div class="right">
-  <div class="placeholder" id="placeholder">Avatar will be output here</div>
-
+  <div class="placeholder" id="placeholder">Avatar will appear here</div>
   <div class="loader" id="loader">
     <div class="spinner"></div>
-    <p>Generating avatar…</p>
+    <p>Generating…</p>
   </div>
-
-  <video id="video" controls playsinline></video>
-
+  <video id="video" controls></video>
   <div class="download" id="download">
     <a href="/download">⬇ Download</a>
   </div>
@@ -158,26 +143,28 @@ video { width:100%; height:100%; display:none; }
 </div>
 
 <script>
-const avatars=document.querySelectorAll(".avatar");
-const avatarField=document.getElementById("avatarField");
-const fileInput=document.getElementById("videoInput");
-const form=document.getElementById("form");
+const avatars = document.querySelectorAll(".avatar");
+const avatarField = document.getElementById("avatarField");
+const genderSelect = document.getElementById("gender");
+const fileInput = document.getElementById("videoInput");
+const form = document.getElementById("form");
 
-const video=document.getElementById("video");
-const loader=document.getElementById("loader");
-const placeholder=document.getElementById("placeholder");
-const download=document.getElementById("download");
+const video = document.getElementById("video");
+const loader = document.getElementById("loader");
+const placeholder = document.getElementById("placeholder");
+const download = document.getElementById("download");
 
-avatars.forEach(a=>{
-  a.onclick=()=>{
-    avatars.forEach(x=>x.classList.remove("selected"));
+avatars.forEach(a => {
+  a.onclick = () => {
+    avatars.forEach(x => x.classList.remove("selected"));
     a.classList.add("selected");
-    avatarField.value=a.dataset.avatar;
-    fileInput.value="";
+    avatarField.value = a.dataset.avatar;
+    genderSelect.value = a.dataset.gender;
+    fileInput.value = "";
   };
 });
 
-form.onsubmit=async e=>{
+form.onsubmit = async e => {
   e.preventDefault();
 
   placeholder.style.display="none";
@@ -185,10 +172,13 @@ form.onsubmit=async e=>{
   video.style.display="none";
   download.style.display="none";
 
-  await fetch("/generate",{method:"POST",body:new FormData(form)});
+  await fetch("/generate", {
+    method: "POST",
+    body: new FormData(form)
+  });
 
   loader.style.display="none";
-  video.src="/video?t="+Date.now();
+  video.src = "/video?t=" + Date.now();
   video.style.display="block";
   video.play();
   download.style.display="block";

@@ -5,7 +5,7 @@ import subprocess
 import base64
 import shutil
 
-from fastapi import FastAPI, UploadFile, File, Form
+from fastapi import FastAPI, UploadFile, File, Form, HTTPException
 from fastapi.responses import HTMLResponse, FileResponse
 from fastapi.staticfiles import StaticFiles
 from dotenv import load_dotenv
@@ -39,13 +39,13 @@ WAV2LIP_MODEL = os.path.join(BASE_DIR, "checkpoints", "wav2lip_gan.onnx")
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 os.makedirs(TEMP_DIR, exist_ok=True)
 os.makedirs(OUTPUT_DIR, exist_ok=True)
-AVATAR_GENDER_MAP = {
-    "bengal.png": "manisha",
-    "bw1.png": "arya",
-    "rajasthani.png": "vidya",
-    "punjabi.png": "hitesh",
-    "bm1.png": "karun",
-    "bm2.png": "abhilash"
+
+# -------------------------------------------------
+# Gender → Speaker mapping (ONLY source of truth)
+# -------------------------------------------------
+GENDER_SPEAKER_MAP = {
+    "male": "hitesh",
+    "female": "manisha"
 }
 
 # -------------------------------------------------
@@ -86,7 +86,11 @@ def index():
 # -------------------------------------------------
 @app.get("/video")
 def get_video():
-    return FileResponse(FINAL_VIDEO_OUTPUT, media_type="video/mp4", headers={"Cache-Control": "no-store"})
+    return FileResponse(
+        FINAL_VIDEO_OUTPUT,
+        media_type="video/mp4",
+        headers={"Cache-Control": "no-store"}
+    )
 
 @app.get("/download")
 def download():
@@ -103,59 +107,50 @@ def download():
 @app.post("/generate")
 def generate(
     text: str = Form(...),
+    gender: str = Form(...),     # REQUIRED
     avatar: str = Form(None),
     video: UploadFile = File(None)
 ):
     uid = str(uuid.uuid4())
 
-    input_path = None
-    ext = None
+    gender = gender.lower().strip()
+    if gender not in GENDER_SPEAKER_MAP:
+        raise HTTPException(status_code=400, detail="gender must be male or female")
 
-    # ----------------------------------------
-    # CASE 1: real uploaded video
-    # ----------------------------------------
+    speaker = GENDER_SPEAKER_MAP[gender]
+
+    # Input selection
     if video and video.filename:
         ext = os.path.splitext(video.filename)[1].lower()
         input_path = os.path.join(UPLOAD_DIR, f"{uid}{ext}")
-
         with open(input_path, "wb") as f:
             shutil.copyfileobj(video.file, f)
-
-    # ----------------------------------------
-    # CASE 2: default avatar image selected
-    # ----------------------------------------
     elif avatar:
         input_path = os.path.join(INPUTS_DIR, avatar)
         ext = os.path.splitext(avatar)[1].lower()
-
+        if not os.path.exists(input_path):
+            raise HTTPException(status_code=400, detail="Avatar not found")
     else:
-        raise RuntimeError("Neither video nor avatar provided")
+        raise HTTPException(status_code=400, detail="Avatar or video required")
 
-    # ----------------------------------------
-    # IMAGE → VIDEO (mandatory for Wav2Lip)
-    # ----------------------------------------
+    # Image → video
     if ext in [".png", ".jpg", ".jpeg"]:
         video_input = os.path.join(UPLOAD_DIR, f"{uid}_img.mp4")
         image_to_video(input_path, video_input)
     else:
         video_input = input_path
 
-    # ----------------------------------------
-    # Sarvam TTS (exact text)
-    # ----------------------------------------
+    # TTS
     tts = sarvam_client.text_to_speech.convert(
         text=text,
-        speaker=AVATAR_GENDER_MAP[avatar],
+        speaker=speaker,
         target_language_code="en-IN"
     )
 
-    audio_bytes = base64.b64decode(tts.audios[0])
     with open(AUDIO_OUTPUT, "wb") as f:
-        f.write(audio_bytes)
+        f.write(base64.b64decode(tts.audios[0]))
 
-    # ----------------------------------------
     # Wav2Lip
-    # ----------------------------------------
     subprocess.run([
         sys.executable,
         WAV2LIP_SCRIPT,
@@ -165,9 +160,7 @@ def generate(
         "--outfile", RAW_VIDEO_OUTPUT
     ], check=True)
 
-    # ----------------------------------------
-    # Browser-safe encode
-    # ----------------------------------------
+    # Encode
     subprocess.run([
         "ffmpeg", "-y",
         "-i", RAW_VIDEO_OUTPUT,
@@ -181,7 +174,6 @@ def generate(
     ], check=True)
 
     return {"status": "done"}
-
 
 @app.get("/favicon.ico")
 def favicon():
