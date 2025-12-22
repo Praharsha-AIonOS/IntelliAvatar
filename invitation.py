@@ -41,11 +41,11 @@ os.makedirs(TEMP_DIR, exist_ok=True)
 os.makedirs(OUTPUT_DIR, exist_ok=True)
 AVATAR_GENDER_MAP = {
     "bengal.png": "manisha",
-    "bw1.png": "vidya",
+    "bw1.png": "arya",
     "rajasthani.png": "vidya",
     "punjabi.png": "hitesh",
-    "bm1.png": "varun",
-    "bm2.png": "anirudh"
+    "bm1.png": "karun",
+    "bm2.png": "abhilash"
 }
 
 # -------------------------------------------------
