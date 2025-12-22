@@ -7,93 +7,104 @@
 <style>
 :root {
   --bg:#0f1115; --panel:#161a26; --accent:#5b7cfa;
-  --text:#fff; --muted:#9aa0b4; --success:#22c55e;
+  --text:#fff; --muted:#9aa0b4;
 }
 body { margin:0; background:var(--bg); color:var(--text); font-family:Arial; }
 .page { padding:32px; }
 .main { display:grid; grid-template-columns:420px 1fr; gap:28px; }
 
 .left {
-  background:var(--panel); border-radius:20px; padding:24px;
-  display:flex; flex-direction:column; gap:18px;
+  background:var(--panel);
+  border-radius:20px;
+  padding:24px;
+  display:flex;
+  flex-direction:column;
+  gap:16px;
 }
 
+.section {
+  border-top:1px solid #2a2f45;
+  padding-top:12px;
+}
+
+.hidden { display:none !important; }
+
 .upload-box {
-  border:2px dashed #2a2f45; border-radius:16px;
-  padding:20px; text-align:center; cursor:pointer;
+  border:2px dashed #2a2f45;
+  border-radius:16px;
+  padding:16px;
+  text-align:center;
+  cursor:pointer;
 }
 .upload-box input { display:none; }
 
-.upload-status {
-  font-size:13px;
-  color:var(--success);
-  display:none;
-}
-
-/* Gender radios */
 .gender-box {
   display:flex;
   gap:20px;
 }
-.gender-box label {
-  display:flex;
-  align-items:center;
-  gap:8px;
-  cursor:pointer;
-}
 
 .avatars {
-  display:grid; grid-template-columns:repeat(3,1fr); gap:12px;
+  display:grid;
+  grid-template-columns:repeat(3,1fr);
+  gap:12px;
 }
 .avatar {
-  border:2px solid transparent; border-radius:14px;
-  overflow:hidden; cursor:pointer;
+  border:2px solid transparent;
+  border-radius:14px;
+  overflow:hidden;
+  cursor:pointer;
 }
-.avatar img { width:100%; height:110px; object-fit:cover; }
-.avatar.selected { border-color:var(--accent); }
+.avatar img {
+  width:100%;
+  height:110px;
+  object-fit:cover;
+}
+.avatar.selected {
+  border-color:var(--accent);
+}
 
-.text-input input {
-  width:100%; padding:16px; border-radius:14px; border:none;
+.video-grid {
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:12px;
+}
+.video-box {
+  border:2px solid transparent;
+  border-radius:14px;
+  overflow:hidden;
+  cursor:pointer;
+}
+.video-box video {
+  width:100%;
+  height:110px;
+  object-fit:cover;
+}
+.video-box.selected {
+  border-color:var(--accent);
 }
 
 .generate-btn {
-  height:54px; border-radius:16px; border:none;
+  height:54px;
+  border-radius:16px;
+  border:none;
   background:linear-gradient(135deg,#4f7cff,#6b8cff);
-  color:white; font-size:16px;
-  cursor:pointer;
-}
-
-.generate-btn:disabled {
-  opacity:0.5;
-  cursor:not-allowed;
+  color:white;
+  font-size:16px;
 }
 
 .right {
-  background:black; border-radius:24px;
-  display:flex; align-items:center; justify-content:center;
+  background:black;
+  border-radius:24px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
   position:relative;
 }
-
-.placeholder { color:var(--muted); font-size:18px; }
-video { width:100%; height:100%; display:none; }
-
-.loader { display:none; text-align:center; }
-.spinner {
-  width:60px; height:60px;
-  border:6px solid rgba(255,255,255,.15);
-  border-top:6px solid var(--accent);
-  border-radius:50%;
-  animation:spin 1s linear infinite;
-}
-@keyframes spin { to { transform:rotate(360deg); } }
-
-.download {
-  position:absolute; bottom:20px; right:20px;
+.placeholder { color:var(--muted); }
+video#output {
+  width:100%;
+  height:100%;
   display:none;
-}
-.download a {
-  padding:12px 20px; background:var(--success);
-  color:black; border-radius:12px; text-decoration:none;
 }
 </style>
 </head>
@@ -104,137 +115,135 @@ video { width:100%; height:100%; display:none; }
 
 <form class="left" id="form">
 
-<label class="upload-box">
-  Upload Video (optional)
-  <input type="file" name="video" id="videoInput" accept="video/mp4">
-</label>
+<b>Source</b>
+<label><input type="radio" name="source" value="upload" required> Upload from computer</label>
+<label><input type="radio" name="source" value="default"> Default selection</label>
 
-<div class="upload-status" id="uploadStatus"></div>
+<!-- UPLOAD MODE -->
+<div id="uploadSection" class="section hidden">
+  <label class="upload-box">
+    Upload Video
+    <input type="file" name="video" id="uploadVideo" accept="video/mp4">
+  </label>
 
-<!-- Gender radio buttons -->
-<div class="gender-box">
-  <label>
-    <input type="radio" name="gender" value="male" required>
-    Male
-  </label>
-  <label>
-    <input type="radio" name="gender" value="female">
-    Female
-  </label>
+  <div class="gender-box">
+    <label><input type="radio" name="gender" value="male" required> Male</label>
+    <label><input type="radio" name="gender" value="female"> Female</label>
+  </div>
 </div>
 
-<div class="avatars">
-  <div class="avatar" data-avatar="bengal.png" data-gender="female">
-    <img src="/inputs/bengal.png">
+<!-- DEFAULT MODE -->
+<div id="defaultSection" class="section hidden">
+
+  <label><input type="radio" name="defaultType" value="image" required> Select from image</label>
+  <label><input type="radio" name="defaultType" value="video"> Select from video</label>
+
+  <!-- IMAGE AVATARS -->
+  <div id="imageSection" class="avatars hidden">
+    <div class="avatar" data-avatar="bengal.png" data-gender="female">
+      <img src="/inputs/bengal.png">
+    </div>
+    <div class="avatar" data-avatar="rajasthani.png" data-gender="female">
+      <img src="/inputs/rajasthani.png">
+    </div>
+    <div class="avatar" data-avatar="punjabi.png" data-gender="male">
+      <img src="/inputs/punjabi.png">
+    </div>
   </div>
-  <div class="avatar" data-avatar="bw1.png" data-gender="female">
-    <img src="/inputs/bw1.png">
+
+  <!-- VIDEO AVATARS -->
+  <div id="videoSection" class="video-grid hidden">
+    <div class="video-box" data-avatar="male.mp4" data-gender="male">
+      <video src="/inputs/male.mp4" autoplay muted loop></video>
+    </div>
+    <div class="video-box" data-avatar="female.mp4" data-gender="female">
+      <video src="/inputs/female.mp4" autoplay muted loop></video>
+    </div>
   </div>
-  <div class="avatar" data-avatar="rajasthani.png" data-gender="female">
-    <img src="/inputs/rajasthani.png">
-  </div>
-  <div class="avatar" data-avatar="punjabi.png" data-gender="male">
-    <img src="/inputs/punjabi.png">
-  </div>
-  <div class="avatar" data-avatar="bm1.png" data-gender="male">
-    <img src="/inputs/bm1.png">
-  </div>
-  <div class="avatar" data-avatar="bm2.png" data-gender="male">
-    <img src="/inputs/bm2.png">
-  </div>
+
 </div>
 
 <input type="hidden" name="avatar" id="avatarField">
 
-<div class="text-input">
-  <input type="text" name="text" placeholder="Enter text…" required>
-</div>
+<input type="text" name="text" placeholder="Enter text…" required>
 
-<button class="generate-btn" id="generateBtn">Generate</button>
+<button class="generate-btn">Generate</button>
 
 </form>
 
 <div class="right">
-  <div class="placeholder" id="placeholder">Avatar will appear here</div>
-  <div class="loader" id="loader">
-    <div class="spinner"></div>
-    <p>Generating…</p>
-  </div>
-  <video id="video" controls></video>
-  <div class="download" id="download">
-    <a href="/download">⬇ Download</a>
-  </div>
+  <div class="placeholder" id="placeholder">Output video here</div>
+  <video id="output" controls></video>
 </div>
 
 </div>
 </div>
 
 <script>
-const avatars = document.querySelectorAll(".avatar");
+const uploadSection = document.getElementById("uploadSection");
+const defaultSection = document.getElementById("defaultSection");
+const imageSection = document.getElementById("imageSection");
+const videoSection = document.getElementById("videoSection");
 const avatarField = document.getElementById("avatarField");
-const genderRadios = document.querySelectorAll("input[name='gender']");
-const fileInput = document.getElementById("videoInput");
-const uploadStatus = document.getElementById("uploadStatus");
-const form = document.getElementById("form");
-const generateBtn = document.getElementById("generateBtn");
-
-const video = document.getElementById("video");
-const loader = document.getElementById("loader");
+const output = document.getElementById("output");
 const placeholder = document.getElementById("placeholder");
-const download = document.getElementById("download");
 
-/* Helper: set gender radio */
-function setGender(value) {
-  genderRadios.forEach(r => r.checked = (r.value === value));
-}
+/* SOURCE SWITCH */
+document.querySelectorAll("input[name='source']").forEach(r => {
+  r.onchange = () => {
+    uploadSection.classList.toggle("hidden", r.value !== "upload");
+    defaultSection.classList.toggle("hidden", r.value !== "default");
 
-/* Avatar click */
-avatars.forEach(a => {
-  a.onclick = () => {
-    avatars.forEach(x => x.classList.remove("selected"));
-    a.classList.add("selected");
-    avatarField.value = a.dataset.avatar;
-    setGender(a.dataset.gender);
-    fileInput.value = "";
-    uploadStatus.style.display = "none";
+    imageSection.classList.add("hidden");
+    videoSection.classList.add("hidden");
+    avatarField.value = "";
   };
 });
 
-/* Video upload confirmation */
-fileInput.onchange = () => {
-  if (fileInput.files.length > 0) {
-    avatars.forEach(x => x.classList.remove("selected"));
-    avatarField.value = "";
-    uploadStatus.textContent = "✔ Video uploaded: " + fileInput.files[0].name;
-    uploadStatus.style.display = "block";
-  }
-};
+/* IMAGE vs VIDEO SWITCH (FIXED) */
+document.querySelectorAll("input[name='defaultType']").forEach(r => {
+  r.onchange = () => {
+    imageSection.classList.add("hidden");
+    videoSection.classList.add("hidden");
 
-/* Submit */
-form.onsubmit = async e => {
+    document.querySelectorAll(".avatar, .video-box")
+      .forEach(x => x.classList.remove("selected"));
+
+    avatarField.value = "";
+
+    if (r.value === "image") imageSection.classList.remove("hidden");
+    if (r.value === "video") videoSection.classList.remove("hidden");
+  };
+});
+
+/* AVATAR / VIDEO SELECT */
+document.querySelectorAll(".avatar, .video-box").forEach(el => {
+  el.onclick = () => {
+    document.querySelectorAll(".avatar, .video-box")
+      .forEach(x => x.classList.remove("selected"));
+
+    el.classList.add("selected");
+    avatarField.value = el.dataset.avatar;
+
+    const g = el.dataset.gender;
+    document.querySelector(`input[name="gender"][value="${g}"]`).checked = true;
+  };
+});
+
+/* SUBMIT */
+document.getElementById("form").onsubmit = async e => {
   e.preventDefault();
 
-  generateBtn.disabled = true;
-  generateBtn.textContent = "Generating…";
-
   placeholder.style.display = "none";
-  loader.style.display = "block";
-  video.style.display = "none";
-  download.style.display = "none";
 
   await fetch("/generate", {
     method: "POST",
-    body: new FormData(form)
+    body: new FormData(e.target)
   });
 
-  loader.style.display = "none";
-  video.src = "/video?t=" + Date.now();
-  video.style.display = "block";
-  video.play();
-  download.style.display = "block";
-
-  generateBtn.disabled = false;
-  generateBtn.textContent = "Generate";
+  output.src = "/video?t=" + Date.now();
+  output.style.display = "block";
+  output.play();
 };
 </script>
 
