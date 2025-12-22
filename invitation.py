@@ -7,14 +7,14 @@ import shutil
 
 from fastapi import FastAPI, UploadFile, File, Form
 from fastapi.responses import HTMLResponse, FileResponse
+from fastapi.staticfiles import StaticFiles
 from dotenv import load_dotenv
 from sarvamai import SarvamAI
 
 # -------------------------------------------------
-# Load environment variables
+# Load env
 # -------------------------------------------------
 load_dotenv()
-
 SARVAM_API_KEY = os.getenv("SARVAM_API_KEY")
 if not SARVAM_API_KEY:
     raise RuntimeError("Missing SARVAM_API_KEY")
@@ -24,6 +24,7 @@ if not SARVAM_API_KEY:
 # -------------------------------------------------
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
+INPUTS_DIR = os.path.join(BASE_DIR, "inputs")
 UPLOAD_DIR = os.path.join(BASE_DIR, "uploads")
 TEMP_DIR = os.path.join(BASE_DIR, "temp")
 OUTPUT_DIR = os.path.join(BASE_DIR, "outputs")
@@ -40,32 +41,29 @@ os.makedirs(TEMP_DIR, exist_ok=True)
 os.makedirs(OUTPUT_DIR, exist_ok=True)
 
 # -------------------------------------------------
-# Init services
+# App
 # -------------------------------------------------
 app = FastAPI()
+app.mount("/inputs", StaticFiles(directory=INPUTS_DIR), name="inputs")
 
-sarvam_client = SarvamAI(
-    api_subscription_key=SARVAM_API_KEY
-)
+sarvam_client = SarvamAI(api_subscription_key=SARVAM_API_KEY)
 
 # -------------------------------------------------
 # Helpers
 # -------------------------------------------------
-def image_to_video(image_path, output_video_path, duration=5):
+def image_to_video(image_path: str, out_path: str, duration: int = 5):
     subprocess.run([
         "ffmpeg", "-y",
         "-loop", "1",
         "-i", image_path,
-        "-t", str(duration),
         "-vf",
         "scale=1280:720:force_original_aspect_ratio=decrease,"
-        "pad=1280:720:(ow-iw)/2:(oh-ih)/2,"
-        "scale=trunc(iw/2)*2:trunc(ih/2)*2",
-        "-pix_fmt", "yuv420p",
+        "pad=1280:720:(ow-iw)/2:(oh-ih)/2",
         "-r", "25",
-        output_video_path
+        "-t", str(duration),
+        "-pix_fmt", "yuv420p",
+        out_path
     ], check=True)
-
 
 # -------------------------------------------------
 # UI
@@ -80,51 +78,63 @@ def index():
 # -------------------------------------------------
 @app.get("/video")
 def get_video():
-    return FileResponse(
-        FINAL_VIDEO_OUTPUT,
-        media_type="video/mp4",
-        headers={"Cache-Control": "no-store"}
-    )
+    return FileResponse(FINAL_VIDEO_OUTPUT, media_type="video/mp4", headers={"Cache-Control": "no-store"})
 
 @app.get("/download")
-def download_video():
+def download():
     return FileResponse(
         FINAL_VIDEO_OUTPUT,
         media_type="video/mp4",
         filename="lip_synced_avatar.mp4",
-        headers={
-            "Content-Disposition": "attachment; filename=lip_synced_avatar.mp4",
-            "Cache-Control": "no-store"
-        }
+        headers={"Content-Disposition": "attachment"}
     )
 
 # -------------------------------------------------
-# Generation endpoint
+# Generate
 # -------------------------------------------------
 @app.post("/generate")
 def generate(
-    video: UploadFile = File(...),
-    text: str = Form(...)
+    text: str = Form(...),
+    avatar: str = Form(None),
+    video: UploadFile = File(None)
 ):
-    upload_id = str(uuid.uuid4())
-    ext = os.path.splitext(video.filename)[1].lower()
+    uid = str(uuid.uuid4())
 
-    input_path = os.path.join(UPLOAD_DIR, upload_id + ext)
-    with open(input_path, "wb") as f:
-        shutil.copyfileobj(video.file, f)
+    input_path = None
+    ext = None
 
-    # -------------------------------------------------
-    # Image → Video if required
-    # -------------------------------------------------
-    if ext in [".jpg", ".jpeg", ".png"]:
-        input_video_path = os.path.join(UPLOAD_DIR, upload_id + "_img.mp4")
-        image_to_video(input_path, input_video_path)
+    # ----------------------------------------
+    # CASE 1: real uploaded video
+    # ----------------------------------------
+    if video and video.filename:
+        ext = os.path.splitext(video.filename)[1].lower()
+        input_path = os.path.join(UPLOAD_DIR, f"{uid}{ext}")
+
+        with open(input_path, "wb") as f:
+            shutil.copyfileobj(video.file, f)
+
+    # ----------------------------------------
+    # CASE 2: default avatar image selected
+    # ----------------------------------------
+    elif avatar:
+        input_path = os.path.join(INPUTS_DIR, avatar)
+        ext = os.path.splitext(avatar)[1].lower()
+
     else:
-        input_video_path = input_path
+        raise RuntimeError("Neither video nor avatar provided")
 
-    # -------------------------------------------------
-    # EXACT text → Sarvam TTS
-    # -------------------------------------------------
+    # ----------------------------------------
+    # IMAGE → VIDEO (mandatory for Wav2Lip)
+    # ----------------------------------------
+    if ext in [".png", ".jpg", ".jpeg"]:
+        video_input = os.path.join(UPLOAD_DIR, f"{uid}_img.mp4")
+        image_to_video(input_path, video_input)
+    else:
+        video_input = input_path
+
+    # ----------------------------------------
+    # Sarvam TTS (exact text)
+    # ----------------------------------------
     tts = sarvam_client.text_to_speech.convert(
         text=text,
         target_language_code="en-IN"
@@ -134,21 +144,21 @@ def generate(
     with open(AUDIO_OUTPUT, "wb") as f:
         f.write(audio_bytes)
 
-    # -------------------------------------------------
+    # ----------------------------------------
     # Wav2Lip
-    # -------------------------------------------------
+    # ----------------------------------------
     subprocess.run([
         sys.executable,
         WAV2LIP_SCRIPT,
         "--checkpoint_path", WAV2LIP_MODEL,
-        "--face", input_video_path,
+        "--face", video_input,
         "--audio", AUDIO_OUTPUT,
         "--outfile", RAW_VIDEO_OUTPUT
     ], check=True)
 
-    # -------------------------------------------------
+    # ----------------------------------------
     # Browser-safe encode
-    # -------------------------------------------------
+    # ----------------------------------------
     subprocess.run([
         "ffmpeg", "-y",
         "-i", RAW_VIDEO_OUTPUT,
@@ -162,6 +172,7 @@ def generate(
     ], check=True)
 
     return {"status": "done"}
+
 
 @app.get("/favicon.ico")
 def favicon():

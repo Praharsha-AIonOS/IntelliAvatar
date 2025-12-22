@@ -1,270 +1,162 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8" />
-<title>ATONOS – Avatar Generator</title>
+<meta charset="UTF-8">
+<title>AIONOS – Avatar Generator</title>
 
 <style>
 :root {
-    --bg: #0f1115;
-    --panel: #161a26;
-    --accent: #5b7cfa;
-    --text: #ffffff;
-    --muted: #9aa0b4;
-    --success: #22c55e;
+  --bg:#0f1115; --panel:#161a26; --accent:#5b7cfa;
+  --text:#fff; --muted:#9aa0b4; --success:#22c55e;
 }
+body { margin:0; background:var(--bg); color:var(--text); font-family:Arial; }
+.page { padding:32px; }
+.main { display:grid; grid-template-columns:420px 1fr; gap:28px; }
 
-* { box-sizing: border-box; }
-
-body {
-    margin: 0;
-    background: var(--bg);
-    color: var(--text);
-    font-family: Inter, Arial, sans-serif;
-}
-
-.page {
-    min-height: 100vh;
-    padding: 32px;
-    display: flex;
-    flex-direction: column;
-}
-
-.header {
-    font-size: 28px;
-    font-weight: 600;
-    margin-bottom: 24px;
-}
-
-.main {
-    flex: 1;
-    display: grid;
-    grid-template-columns: 420px 1fr;
-    gap: 28px;
-}
-
-/* LEFT */
 .left {
-    background: var(--panel);
-    border-radius: 20px;
-    padding: 24px;
-    display: flex;
-    flex-direction: column;
-    gap: 18px;
+  background:var(--panel); border-radius:20px; padding:24px;
+  display:flex; flex-direction:column; gap:18px;
 }
 
 .upload-box {
-    border: 2px dashed #2a2f45;
-    border-radius: 16px;
-    padding: 28px;
-    text-align: center;
-    cursor: pointer;
+  border:2px dashed #2a2f45; border-radius:16px;
+  padding:20px; text-align:center; cursor:pointer;
 }
+.upload-box input { display:none; }
 
-.upload-box.uploaded {
-    border-color: var(--success);
+.avatars {
+  display:grid; grid-template-columns:repeat(3,1fr); gap:12px;
 }
-
-.upload-box input {
-    display: none;
+.avatar {
+  border:2px solid transparent; border-radius:14px;
+  overflow:hidden; cursor:pointer;
 }
-
-.upload-text {
-    color: var(--muted);
-}
-
-.upload-text.success {
-    color: var(--success);
-    font-weight: 600;
-}
-
-.file-name {
-    font-size: 13px;
-    color: var(--success);
-    display: none;
-}
+.avatar img { width:100%; height:110px; object-fit:cover; }
+.avatar.selected { border-color:var(--accent); }
 
 .text-input input {
-    width: 100%;
-    padding: 16px;
-    border-radius: 14px;
-    border: none;
-    font-size: 15px;
+  width:100%; padding:16px; border-radius:14px; border:none;
 }
 
 .generate-btn {
-    margin-top: auto;
-    height: 54px;
-    border-radius: 16px;
-    border: none;
-    font-size: 16px;
-    background: linear-gradient(135deg, #4f7cff, #6b8cff);
-    color: white;
-    cursor: pointer;
+  height:54px; border-radius:16px; border:none;
+  background:linear-gradient(135deg,#4f7cff,#6b8cff);
+  color:white; font-size:16px;
 }
 
-.status {
-    font-size: 14px;
-    color: #ffd36b;
-    display: none;
-}
-
-/* RIGHT */
 .right {
-    background: black;
-    border-radius: 24px;
-    position: relative;
-    overflow: hidden;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+  background:black; border-radius:24px;
+  display:flex; align-items:center; justify-content:center;
+  position:relative;
 }
 
-video, img {
-    width: 100%;
-    height: 100%;
-    object-fit: contain;
-    display: none;
+.placeholder {
+  color:var(--muted); font-size:18px;
 }
 
-.loader {
-    text-align: center;
-    display: none;
-}
+video { width:100%; height:100%; display:none; }
 
+.loader { display:none; text-align:center; }
 .spinner {
-    width: 70px;
-    height: 70px;
-    border: 6px solid rgba(255,255,255,0.15);
-    border-top: 6px solid var(--accent);
-    border-radius: 50%;
-    animation: spin 1s linear infinite;
+  width:60px; height:60px;
+  border:6px solid rgba(255,255,255,.15);
+  border-top:6px solid var(--accent);
+  border-radius:50%;
+  animation:spin 1s linear infinite;
 }
-
-@keyframes spin {
-    to { transform: rotate(360deg); }
-}
+@keyframes spin { to { transform:rotate(360deg); } }
 
 .download {
-    position: absolute;
-    bottom: 20px;
-    right: 20px;
-    display: none;
+  position:absolute; bottom:20px; right:20px;
+  display:none;
 }
-
 .download a {
-    padding: 12px 20px;
-    background: var(--success);
-    border-radius: 12px;
-    color: black;
-    text-decoration: none;
-    font-weight: 600;
+  padding:12px 20px; background:var(--success);
+  color:black; border-radius:12px; text-decoration:none;
 }
 </style>
 </head>
 
 <body>
-
 <div class="page">
-
-<div class="header">ATONOS</div>
-
 <div class="main">
 
-<form class="left" id="inviteForm">
+<form class="left" id="form">
 
-<label class="upload-box" id="uploadBox">
-    <input type="file" id="videoInput" name="video"
-           accept="video/mp4,image/png,image/jpeg" required />
-    <div class="upload-text" id="uploadText">⬆ Upload Video or Image</div>
-    <div class="file-name" id="fileName"></div>
+<label class="upload-box">
+  Upload Video (optional)
+  <input type="file" name="video" id="videoInput" accept="video/mp4">
 </label>
 
-<div class="text-input">
-    <input type="text" name="text" placeholder="Enter text to be spoken…" required />
+<div class="avatars">
+  <div class="avatar" data-avatar="bw1.png"><img src="/inputs/bw1.png"></div>
+  <div class="avatar" data-avatar="rajasthani.png"><img src="/inputs/rajasthani.png"></div>
+  <div class="avatar" data-avatar="bengal.png"><img src="/inputs/bengal.png"></div>
 </div>
 
-<button class="generate-btn" type="submit">Generate</button>
+<input type="hidden" name="avatar" id="avatarField">
 
-<div class="status" id="statusText">Generating avatar…</div>
+<div class="text-input">
+  <input type="text" name="text" placeholder="Enter text to be spoken…" required>
+</div>
+
+<button class="generate-btn">Generate</button>
 
 </form>
 
 <div class="right">
+  <div class="placeholder" id="placeholder">Avatar will be output here</div>
 
-<img id="imagePreview" />
-<video id="resultVideo" controls playsinline></video>
-
-<div class="loader" id="loader">
+  <div class="loader" id="loader">
     <div class="spinner"></div>
-    <p>Generating video…</p>
-</div>
+    <p>Generating avatar…</p>
+  </div>
 
-<div class="download" id="downloadBox">
+  <video id="video" controls playsinline></video>
+
+  <div class="download" id="download">
     <a href="/download">⬇ Download</a>
+  </div>
 </div>
 
-</div>
 </div>
 </div>
 
 <script>
-const form = document.getElementById("inviteForm");
-const video = document.getElementById("resultVideo");
-const img = document.getElementById("imagePreview");
-const loader = document.getElementById("loader");
-const statusText = document.getElementById("statusText");
-const downloadBox = document.getElementById("downloadBox");
+const avatars=document.querySelectorAll(".avatar");
+const avatarField=document.getElementById("avatarField");
+const fileInput=document.getElementById("videoInput");
+const form=document.getElementById("form");
 
-const videoInput = document.getElementById("videoInput");
-const uploadBox = document.getElementById("uploadBox");
-const uploadText = document.getElementById("uploadText");
-const fileName = document.getElementById("fileName");
+const video=document.getElementById("video");
+const loader=document.getElementById("loader");
+const placeholder=document.getElementById("placeholder");
+const download=document.getElementById("download");
 
-videoInput.onchange = () => {
-    const file = videoInput.files[0];
-    if (!file) return;
+avatars.forEach(a=>{
+  a.onclick=()=>{
+    avatars.forEach(x=>x.classList.remove("selected"));
+    a.classList.add("selected");
+    avatarField.value=a.dataset.avatar;
+    fileInput.value="";
+  };
+});
 
-    uploadBox.classList.add("uploaded");
-    uploadText.classList.add("success");
-    uploadText.textContent = "✔ Uploaded";
-    fileName.style.display = "block";
-    fileName.textContent = file.name;
+form.onsubmit=async e=>{
+  e.preventDefault();
 
-    if (file.type.startsWith("image/")) {
-        img.src = URL.createObjectURL(file);
-        img.style.display = "block";
-        video.style.display = "none";
-    } else {
-        img.style.display = "none";
-    }
-};
+  placeholder.style.display="none";
+  loader.style.display="block";
+  video.style.display="none";
+  download.style.display="none";
 
+  await fetch("/generate",{method:"POST",body:new FormData(form)});
 
-form.onsubmit = async (e) => {
-    e.preventDefault();
-
-    const formData = new FormData(form);
-
-    statusText.style.display = "block";
-    loader.style.display = "block";
-    video.style.display = "none";
-    img.style.display = "none";
-    downloadBox.style.display = "none";
-
-    await fetch("/generate", {
-        method: "POST",
-        body: formData
-    });
-
-    statusText.style.display = "none";
-    loader.style.display = "none";
-
-    video.src = "/video?t=" + Date.now();
-    video.style.display = "block";
-    video.play();
-
-    downloadBox.style.display = "block";
+  loader.style.display="none";
+  video.src="/video?t="+Date.now();
+  video.style.display="block";
+  video.play();
+  download.style.display="block";
 };
 </script>
 
