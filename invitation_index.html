@@ -24,6 +24,24 @@ body { margin:0; background:var(--bg); color:var(--text); font-family:Arial; }
 }
 .upload-box input { display:none; }
 
+.upload-status {
+  font-size:13px;
+  color:var(--success);
+  display:none;
+}
+
+/* Gender radios */
+.gender-box {
+  display:flex;
+  gap:20px;
+}
+.gender-box label {
+  display:flex;
+  align-items:center;
+  gap:8px;
+  cursor:pointer;
+}
+
 .avatars {
   display:grid; grid-template-columns:repeat(3,1fr); gap:12px;
 }
@@ -38,14 +56,16 @@ body { margin:0; background:var(--bg); color:var(--text); font-family:Arial; }
   width:100%; padding:16px; border-radius:14px; border:none;
 }
 
-select {
-  width:100%; padding:14px; border-radius:14px; border:none;
-}
-
 .generate-btn {
   height:54px; border-radius:16px; border:none;
   background:linear-gradient(135deg,#4f7cff,#6b8cff);
   color:white; font-size:16px;
+  cursor:pointer;
+}
+
+.generate-btn:disabled {
+  opacity:0.5;
+  cursor:not-allowed;
 }
 
 .right {
@@ -89,12 +109,19 @@ video { width:100%; height:100%; display:none; }
   <input type="file" name="video" id="videoInput" accept="video/mp4">
 </label>
 
-<!-- Gender -->
-<select name="gender" id="gender" required>
-  <option value="">Select Gender</option>
-  <option value="male">Male</option>
-  <option value="female">Female</option>
-</select>
+<div class="upload-status" id="uploadStatus"></div>
+
+<!-- Gender radio buttons -->
+<div class="gender-box">
+  <label>
+    <input type="radio" name="gender" value="male" required>
+    Male
+  </label>
+  <label>
+    <input type="radio" name="gender" value="female">
+    Female
+  </label>
+</div>
 
 <div class="avatars">
   <div class="avatar" data-avatar="bengal.png" data-gender="female">
@@ -123,7 +150,7 @@ video { width:100%; height:100%; display:none; }
   <input type="text" name="text" placeholder="Enter text…" required>
 </div>
 
-<button class="generate-btn">Generate</button>
+<button class="generate-btn" id="generateBtn">Generate</button>
 
 </form>
 
@@ -145,43 +172,69 @@ video { width:100%; height:100%; display:none; }
 <script>
 const avatars = document.querySelectorAll(".avatar");
 const avatarField = document.getElementById("avatarField");
-const genderSelect = document.getElementById("gender");
+const genderRadios = document.querySelectorAll("input[name='gender']");
 const fileInput = document.getElementById("videoInput");
+const uploadStatus = document.getElementById("uploadStatus");
 const form = document.getElementById("form");
+const generateBtn = document.getElementById("generateBtn");
 
 const video = document.getElementById("video");
 const loader = document.getElementById("loader");
 const placeholder = document.getElementById("placeholder");
 const download = document.getElementById("download");
 
+/* Helper: set gender radio */
+function setGender(value) {
+  genderRadios.forEach(r => r.checked = (r.value === value));
+}
+
+/* Avatar click */
 avatars.forEach(a => {
   a.onclick = () => {
     avatars.forEach(x => x.classList.remove("selected"));
     a.classList.add("selected");
     avatarField.value = a.dataset.avatar;
-    genderSelect.value = a.dataset.gender;
+    setGender(a.dataset.gender);
     fileInput.value = "";
+    uploadStatus.style.display = "none";
   };
 });
 
+/* Video upload confirmation */
+fileInput.onchange = () => {
+  if (fileInput.files.length > 0) {
+    avatars.forEach(x => x.classList.remove("selected"));
+    avatarField.value = "";
+    uploadStatus.textContent = "✔ Video uploaded: " + fileInput.files[0].name;
+    uploadStatus.style.display = "block";
+  }
+};
+
+/* Submit */
 form.onsubmit = async e => {
   e.preventDefault();
 
-  placeholder.style.display="none";
-  loader.style.display="block";
-  video.style.display="none";
-  download.style.display="none";
+  generateBtn.disabled = true;
+  generateBtn.textContent = "Generating…";
+
+  placeholder.style.display = "none";
+  loader.style.display = "block";
+  video.style.display = "none";
+  download.style.display = "none";
 
   await fetch("/generate", {
     method: "POST",
     body: new FormData(form)
   });
 
-  loader.style.display="none";
+  loader.style.display = "none";
   video.src = "/video?t=" + Date.now();
-  video.style.display="block";
+  video.style.display = "block";
   video.play();
-  download.style.display="block";
+  download.style.display = "block";
+
+  generateBtn.disabled = false;
+  generateBtn.textContent = "Generate";
 };
 </script>
 
