@@ -41,7 +41,7 @@ os.makedirs(TEMP_DIR, exist_ok=True)
 os.makedirs(OUTPUT_DIR, exist_ok=True)
 
 # -------------------------------------------------
-# Gender → Speaker mapping (ONLY source of truth)
+# Gender → Speaker mapping
 # -------------------------------------------------
 GENDER_SPEAKER_MAP = {
     "male": "hitesh",
@@ -107,7 +107,7 @@ def download():
 @app.post("/generate")
 def generate(
     text: str = Form(...),
-    gender: str = Form(...),     # REQUIRED
+    gender: str = Form(...),
     avatar: str = Form(None),
     video: UploadFile = File(None)
 ):
